@@ -25,3 +25,14 @@ eval (If b t e) = if eval b then eval t else eval e
 
 instance Show a => Show (Term a) where
   show = show . eval
+
+zero, one, two :: Term Int
+(zero, one, two) = (Zero, Succ zero, Succ one)
+
+true, false :: Term Bool
+(true, false) = (IsZero zero, IsZero one)
+
+plus :: Term Int -> Term Int -> Term Int
+plus Zero     y = y
+plus (Succ x) y = plus x (Succ y)
+plus (Pred x) y = plus x (Pred y)

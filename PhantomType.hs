@@ -1,8 +1,11 @@
 {-# LANGUAGE GADTs, ExistentialQuantification #-}
 module PhantomType where
 
+import Control.Arrow (first)
 import Data.Char
+import Data.Maybe (fromJust)
 import Data.Monoid (mappend)
+import Data.List (unfoldr)
 import Text.PrettyPrint.Leijen hiding (pretty)
 
 {--
@@ -76,8 +79,23 @@ intToBits n = take 32 $ intToBits' n ++ repeat O
     i2b 0 = O
     i2b 1 = I
 
+bitsToInt' :: Int -> [Bit] -> Maybe (Int, [Bit])
+bitsToInt' n bs = if length h == n
+                  then Just (sum $ zipWith (\b x -> b2i b*2^x) h [0..], t)
+                  else Nothing
+  where
+    (h, t) = splitAt n bs
+    b2i O = 0
+    b2i I = 1
+
+bitsToInt :: [Bit] -> Maybe (Int, [Bit])
+bitsToInt = bitsToInt' 32
+
 charToBits :: Char -> [Bit]
 charToBits c = take 7 $ (intToBits $ ord c) ++ repeat O
+
+bitsToChar :: [Bit] -> Maybe (Char, [Bit])
+bitsToChar = fmap (first chr) . bitsToInt' 7
 
 compress :: forall t. Type t -> t -> [Bit]
 compress (RInt) i = compressInt i
@@ -87,6 +105,24 @@ compress (RChar) c = compressChar c
 compress (RList ra) [] = O:[]
 compress (RList ra) (a:as) = I:compress ra a ++ compress (RList ra) as
 compress (RPair ra rb) (a,b) = compress ra a ++ compress rb b
+
+uncompress :: forall t. Type t -> [Bit] -> t
+uncompress = ((fst.fromJust).).uncompress'
+
+uncompress' :: forall t. Type t -> [Bit] -> Maybe (t, [Bit])
+uncompress' (RInt) bs = uncompressInt bs
+  where uncompressInt = bitsToInt
+uncompress' (RChar) bs = uncompressChar bs
+  where uncompressChar = bitsToChar
+uncompress' (RList ra) (O:bs) = Just ([], bs)
+uncompress' (RList ra) (I:bs) =
+  uncompress' ra bs >>= \(a, bs') -> 
+  uncompress' (RList ra) bs' >>= \(as, bs'') ->
+  return (a:as, bs'')
+uncompress' (RPair ra rb) bs = 
+  uncompress' ra bs >>= \(a, bs') ->
+  uncompress' rb bs' >>= \(b, bs'') ->
+  return ((a, b), bs'')
 
 pretty :: forall t. Type t -> t -> Doc
 pretty (RInt) i = prettyInt i

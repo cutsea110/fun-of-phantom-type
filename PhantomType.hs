@@ -104,3 +104,17 @@ pretty (RPair ra rb) (a, b) = block 1 (text "(" <> pretty ra a <> text ","
 
 block :: Int -> Doc -> Doc
 block i d = group (nest i d)
+
+eq :: forall t. Type t -> t -> t -> Bool
+eq (RInt) i i' = i == i'
+eq (RChar) c c' = c == c'
+eq (RList _) [] [] = True
+eq (RList _) (_:_) [] = False
+eq (RList _) [] (_:_) = False
+eq (RList ra) (a:as) (b:bs) = eq ra a b && eq (RList ra) as bs
+eq (RPair ra rb) (a, b) (a', b') = eq ra a a' && eq rb b b'
+
+-- testI = eq RInt 34 35
+-- testC = eq RChar 'c' 'C'
+-- testL = eq (RList RChar) "abvc" "abvc"
+-- testP = eq (RPair RChar rString) ('a', "abc") ('b', "xyz")

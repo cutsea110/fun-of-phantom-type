@@ -118,3 +118,23 @@ eq (RPair ra rb) (a, b) (a', b') = eq ra a a' && eq rb b b'
 -- testC = eq RChar 'c' 'C'
 -- testL = eq (RList RChar) "abvc" "abvc"
 -- testP = eq (RPair RChar rString) ('a', "abc") ('b', "xyz")
+
+comp :: forall t. Type t -> t -> t -> Ordering
+comp (RInt) i i' = i `compare` i'
+comp (RChar) c c' = c `compare` c'
+comp (RList _) [] [] = EQ
+comp (RList _) (_:_) [] = GT
+comp (RList _) [] (_:_) = LT
+comp (RList ra) (a:as) (b:bs) | h == EQ = comp (RList ra) as bs
+                              | otherwise = h
+  where
+    h = comp ra a b
+comp (RPair ra rb) (a, b) (a', b') | f == EQ = s
+                                   | otherwise = f
+  where
+    (f, s) = (comp ra a a', comp rb b b')
+
+-- testI = comp RInt 3 4
+-- testC = comp RChar 'a' 'b'
+-- testL = comp (RList RInt) [1,2,3,4] [1,2,4,2]
+-- testP = comp (RPair RInt rString) (60, "Richard") (59, "Richard")

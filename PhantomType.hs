@@ -2,6 +2,7 @@
 module PhantomType where
 
 import Data.Char
+import Data.Monoid (mappend)
 import Text.PrettyPrint.Leijen hiding (pretty)
 
 {--
@@ -125,14 +126,8 @@ comp (RChar) c c' = c `compare` c'
 comp (RList _) [] [] = EQ
 comp (RList _) (_:_) [] = GT
 comp (RList _) [] (_:_) = LT
-comp (RList ra) (a:as) (b:bs) | h == EQ = comp (RList ra) as bs
-                              | otherwise = h
-  where
-    h = comp ra a b
-comp (RPair ra rb) (a, b) (a', b') | f == EQ = s
-                                   | otherwise = f
-  where
-    (f, s) = (comp ra a a', comp rb b b')
+comp (RList ra) (a:as) (b:bs) = comp ra a b `mappend` comp (RList ra) as bs
+comp (RPair ra rb) (a, b) (a', b') = comp ra a a' `mappend` comp rb b b'
 
 -- testI = comp RInt 3 4
 -- testC = comp RChar 'a' 'b'

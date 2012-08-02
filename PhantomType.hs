@@ -2,6 +2,7 @@
 module PhantomType where
 
 import Data.Char
+import Text.PrettyPrint.Leijen hiding (pretty)
 
 {--
 data Term t = Zero
@@ -85,3 +86,21 @@ compress (RChar) c = compressChar c
 compress (RList ra) [] = O:[]
 compress (RList ra) (a:as) = I:compress ra a ++ compress (RList ra) as
 compress (RPair ra rb) (a,b) = compress ra a ++ compress rb b
+
+pretty :: forall t. Type t -> t -> Doc
+pretty (RInt) i = prettyInt i
+  where prettyInt = text . show
+pretty (RChar) c = prettyChar c
+  where prettyChar = text . show
+pretty (RList RChar) s = prettyString s
+  where prettyString = text . show
+pretty (RList ra) [] = text "[]"
+pretty (RList ra) (a:as) = block 1 (text "[" <> pretty ra a <> prettyL as)
+  where
+    prettyL [] = text "]"
+    prettyL (a:as) = text "," <> line <> pretty ra a <> prettyL as
+pretty (RPair ra rb) (a, b) = block 1 (text "(" <> pretty ra a <> text ","
+                                       <> line <> pretty rb b <> text ")")
+
+block :: Int -> Doc -> Doc
+block i d = group (nest i d)

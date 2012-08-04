@@ -65,6 +65,9 @@ instance Show (Type t) where
   show (RPair ra rb) = "(RPair " ++ show ra ++ " " ++ show rb ++ ")"
   show (RDyn) = "RDyn"
 
+instance Show Dynamic where
+  show (Dyn ra a) = "Dyn " ++ show ra ++ " " ++ show a
+
 rString :: Type String
 rString = RList RChar
 

@@ -154,6 +154,7 @@ pretty (RList ra) (a:as) = block 1 (text "[" <> pretty ra a <> prettyL as)
     prettyL (a:as) = text "," <> line <> pretty ra a <> prettyL as
 pretty (RPair ra rb) (a, b) = block 1 (text "(" <> pretty ra a <> text ","
                                        <> line <> pretty rb b <> text ")")
+pretty (RDyn) a = prettyDynamic a
 
 block :: Int -> Doc -> Doc
 block i d = group (nest i d)
@@ -281,3 +282,13 @@ uncompressDynamic' bs =
   uncompressRep' bs >>= \(Rep ra, bs') ->
   uncompress' ra bs' >>= \(a, bs'') ->
   return (Dyn ra a, bs'')
+
+prettyRep :: Rep -> Doc
+prettyRep (Rep (RInt)) = text "RInt"
+prettyRep (Rep (RChar)) = text "RChar"
+prettyRep (Rep (RList ra)) = lparen <> text "RList" <+> prettyRep (Rep ra) <> rparen
+prettyRep (Rep (RPair ra rb)) = align $ cat [lparen, text "RPair", prettyRep (Rep ra), prettyRep (Rep rb), rparen]
+prettyRep (Rep (RDyn)) = text "RDyn"
+
+prettyDynamic :: Dynamic -> Doc
+prettyDynamic (Dyn ra a) = text "Dyn" <+> prettyRep (Rep ra) <+> (align $ pretty ra a)

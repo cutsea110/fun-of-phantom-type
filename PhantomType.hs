@@ -244,3 +244,29 @@ pair = (***)
 
 cast :: forall t. Dynamic -> Type t -> Maybe t
 cast (Dyn ra a) rt = fmap (\f -> f a) (tequal ra rt)
+
+data Rep = forall t. Rep (Type t)
+
+instance Show Rep where
+  show (Rep r) = "Rep " ++ show r
+
+compressRep :: Rep -> [Bit]
+compressRep (Rep (RInt)) = [O,O,O]
+compressRep (Rep (RChar)) = [O,O,I]
+compressRep (Rep (RList ra)) = [O,I,O]++compressRep (Rep ra)
+compressRep (Rep (RPair ra rb)) = [O,I,I]++compressRep (Rep ra)++compressRep (Rep rb)
+compressRep (Rep (RDyn)) = [I,O,O]
+
+uncompressRep :: [Bit] -> Rep
+uncompressRep = fst.fromJust.uncompressRep'
+
+uncompressRep' :: [Bit] -> Maybe (Rep, [Bit])
+uncompressRep' (O:O:O:bs) = return (Rep RInt, bs)
+uncompressRep' (O:O:I:bs) = return (Rep RChar, bs)
+uncompressRep' (O:I:O:bs) = 
+  uncompressRep' bs >>= \(Rep r, bs') -> return (Rep (RList r), bs')
+uncompressRep' (O:I:I:bs) =
+  uncompressRep' bs >>= \(Rep r, bs') ->
+  uncompressRep' bs' >>= \(Rep r', bs'') ->
+  return (Rep (RPair r r'), bs'')
+uncompressRep' (I:O:O:bs) = return (Rep RDyn, bs)

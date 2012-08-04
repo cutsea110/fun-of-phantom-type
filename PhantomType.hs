@@ -53,8 +53,8 @@ data Type t = RInt
 data Type t where
   RInt :: Type Int
   RChar :: Type Char
-  RList :: Type a -> Type [a]
-  RPair :: Type a -> Type b -> Type (a, b)
+  RList :: Show a => Type a -> Type [a]
+  RPair :: (Show a, Show b) => Type a -> Type b -> Type (a, b)
   RDyn :: Type Dynamic
 
 data Dynamic = forall t. Show t => Dyn (Type t) t
@@ -119,11 +119,12 @@ compress (RChar) c = compressChar c
 compress (RList ra) [] = O:[]
 compress (RList ra) (a:as) = I:compress ra a ++ compress (RList ra) as
 compress (RPair ra rb) (a,b) = compress ra a ++ compress rb b
+compress (RDyn) a = compressDynamic a
 
-uncompress :: forall t. Type t -> [Bit] -> t
+uncompress :: Show t => Type t -> [Bit] -> t
 uncompress = ((fst.fromJust).).uncompress'
 
-uncompress' :: forall t. Type t -> [Bit] -> Maybe (t, [Bit])
+uncompress' :: Show t => Type t -> [Bit] -> Maybe (t, [Bit])
 uncompress' (RInt) bs = uncompressInt bs
   where uncompressInt = bitsToInt
 uncompress' (RChar) bs = uncompressChar bs
@@ -137,6 +138,7 @@ uncompress' (RPair ra rb) bs =
   uncompress' ra bs >>= \(a, bs') ->
   uncompress' rb bs' >>= \(b, bs'') ->
   return ((a, b), bs'')
+uncompress' (RDyn) bs = uncompressDynamic' bs
 
 pretty :: forall t. Type t -> t -> Doc
 pretty (RInt) i = prettyInt i
@@ -245,7 +247,7 @@ pair = (***)
 cast :: forall t. Dynamic -> Type t -> Maybe t
 cast (Dyn ra a) rt = fmap (\f -> f a) (tequal ra rt)
 
-data Rep = forall t. Rep (Type t)
+data Rep = forall t. Show t => Rep (Type t)
 
 instance Show Rep where
   show (Rep r) = "Rep " ++ show r
@@ -270,3 +272,12 @@ uncompressRep' (O:I:I:bs) =
   uncompressRep' bs' >>= \(Rep r', bs'') ->
   return (Rep (RPair r r'), bs'')
 uncompressRep' (I:O:O:bs) = return (Rep RDyn, bs)
+
+compressDynamic :: Dynamic -> [Bit]
+compressDynamic (Dyn ra a) = compressRep (Rep ra) ++ compress ra a
+
+uncompressDynamic' :: [Bit] -> Maybe (Dynamic, [Bit])
+uncompressDynamic' bs =
+  uncompressRep' bs >>= \(Rep ra, bs') ->
+  uncompress' ra bs' >>= \(a, bs'') ->
+  return (Dyn ra a, bs'')

@@ -1,12 +1,13 @@
 {-# LANGUAGE GADTs, ExistentialQuantification #-}
 module PhantomType where
 
-import Control.Arrow (first)
+import Control.Arrow (first, (***))
+import Control.Monad (liftM, liftM2)
 import Data.Char
 import Data.Maybe (fromJust)
 import Data.Monoid (mappend)
 import Data.List (unfoldr)
-import Text.PrettyPrint.Leijen hiding (pretty)
+import Text.PrettyPrint.Leijen hiding (pretty, list)
 
 {--
 data Term t = Zero
@@ -227,3 +228,19 @@ comp (RPair ra rb) (a, b) (a', b') = comp ra a a' `mappend` comp rb b b'
 -- testC = comp RChar 'a' 'b'
 -- testL = comp (RList RInt) [1,2,3,4] [1,2,4,2]
 -- testP = comp (RPair RInt rString) (60, "Richard") (59, "Richard")
+
+tequal :: forall t s. Type t -> Type s -> Maybe (t -> s)
+tequal (RInt) (RInt) = return id
+tequal (RChar) (RChar) = return id
+tequal (RList ra1) (RList ra2) = liftM list (tequal ra1 ra2)
+tequal (RPair ra1 rb1) (RPair ra2 rb2) = liftM2 pair (tequal ra1 ra2) (tequal rb1 rb2)
+tequal _ _ = fail "cannot unify"
+
+list :: (a -> b) -> ([a] -> [b])
+list = map
+pair :: (a -> c) -> (b -> d) -> ((a, b) -> (c, d))
+-- arr a c -> arr b d -> arr (a, b) (c, d)
+pair = (***)
+
+cast :: forall t. Dynamic -> Type t -> Maybe t
+cast (Dyn ra a) rt = fmap (\f -> f a) (tequal ra rt)

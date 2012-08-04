@@ -292,3 +292,24 @@ prettyRep (Rep (RDyn)) = text "RDyn"
 
 prettyDynamic :: Dynamic -> Doc
 prettyDynamic (Dyn ra a) = text "Dyn" <+> prettyRep (Rep ra) <+> (align $ pretty ra a)
+
+parseRep' :: String -> Maybe (Rep, String)
+parseRep' cs = parseR $ skipSpace cs
+  where
+    parseR ('R':'I':'n':'t':cs') = return (Rep RInt, cs')
+    parseR ('R':'C':'h':'a':'r':cs') = return (Rep RChar, cs')
+    parseR ('R':'L':'i':'s':'t':cs') =
+      parseRep' cs' >>= \(Rep ra, cs'') ->
+      return (Rep (RList ra), cs'')
+    parseR ('R':'P':'a':'i':'r':cs') =
+      parseRep' cs' >>= \(Rep ra, cs'') ->
+      parseRep' cs'' >>= \(Rep rb, cs''') ->
+      return (Rep (RPair ra rb), cs''')
+    parseR ('R':'D':'y':'n':cs) = return (Rep RDyn, cs)
+    parseR ('(':cs) =
+      parseRep' cs >>= \(Rep ra, cs') ->
+      parseRP cs' >>= \(_, cs'') ->
+      return (Rep ra, cs'')
+    parseRP cs = parseRP' $ skipSpace cs
+      where
+        parseRP' (')':cs) = return (')', cs)

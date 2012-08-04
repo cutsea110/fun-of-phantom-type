@@ -142,6 +142,51 @@ pretty (RPair ra rb) (a, b) = block 1 (text "(" <> pretty ra a <> text ","
 block :: Int -> Doc -> Doc
 block i d = group (nest i d)
 
+parse :: forall t. Type t -> String -> t
+parse = ((fst.fromJust).).parse'
+
+parse' :: forall t. Type t -> String -> Maybe (t, String)
+parse' (RInt) cs = parseInt $ skipSpace cs
+  where 
+    parseInt cs = let (is, cs') = span isDigit cs  
+                  in return (read is :: Int, cs')
+parse' (RChar) cs = parseChar $ skipSpace cs
+  where parseChar ('\'':c:'\'':cs') = Just (c, cs')
+parse' (RList RChar) cs = parseList $ skipSpace cs
+  where
+    parseList ('"':cs) = let (f, '"':s) = span (/='"') cs
+                         in return (f, s)
+parse' (RList ra) cs = parseList ra $ skipSpace cs
+  where
+    parseList :: forall t. Type t -> String -> Maybe ([t], String)
+    parseList ra ('[':cs) = parseList' ra cs
+    parseList' :: forall t. Type t -> String -> Maybe ([t], String)
+    parseList' ra (']':cs) = return ([], cs)
+    parseList' ra cs = 
+      parse' ra cs >>= \(a, cs') ->
+      parseSep cs' >>= \(sep, cs'') ->
+      case sep of
+        ']' -> return ([a], cs'')
+        ',' -> parseList' ra cs'' >>= \(as, cs''') ->
+          return (a:as, cs''')
+        _ -> fail "illegal list"
+parse' (RPair ra rb) cs = parsePair ra rb $ skipSpace cs
+  where
+    parsePair ra rb ('(':cs) =
+      parse' ra cs >>= \(a, cs') ->
+      parseSep cs' >>= \(',', cs'') ->
+      parse' rb cs'' >>= \(b, cs''') ->
+      parseSep cs''' >>= \(')', cs'''') ->
+      return ((a, b), cs'''')
+
+skipSpace :: String -> String
+skipSpace ccs@(c:cs) | isSpace c = skipSpace cs
+                     | otherwise = ccs
+
+parseSep :: String -> Maybe (Char, String)
+parseSep ccs@(c:cs) | c `elem` ",])" = Just (c, cs)
+                    | otherwise = Nothing
+
 eq :: forall t. Type t -> t -> t -> Bool
 eq (RInt) i i' = i == i'
 eq (RChar) c c' = c == c'

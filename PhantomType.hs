@@ -54,7 +54,10 @@ data Type t where
   RChar :: Type Char
   RList :: Type a -> Type [a]
   RPair :: Type a -> Type b -> Type (a, b)
-  
+  RDyn :: Type Dynamic
+
+data Dynamic = forall t. Show t => Dyn (Type t) t
+
 rString :: Type String
 rString = RList RChar
 

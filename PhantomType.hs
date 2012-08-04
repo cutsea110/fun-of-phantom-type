@@ -58,6 +58,13 @@ data Type t where
 
 data Dynamic = forall t. Show t => Dyn (Type t) t
 
+instance Show (Type t) where
+  show (RInt) = "RInt"
+  show (RChar) = "RChar"
+  show (RList ra) = "(RList " ++ show ra ++ ")"
+  show (RPair ra rb) = "(RPair " ++ show ra ++ " " ++ show rb ++ ")"
+  show (RDyn) = "RDyn"
+
 rString :: Type String
 rString = RList RChar
 

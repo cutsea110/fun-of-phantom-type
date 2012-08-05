@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs, ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
 module PhantomType where
 
 import Control.Arrow (first, (***))
@@ -327,4 +328,10 @@ parseDynamic cs = parseDynamic' $ skipSpace cs
 type Name = String
 type Age = Int
 data Person = Person Name Age deriving Show
+
+tick :: Name -> Traversal
+tick s (RPerson) (Person n a) | s == n = Person n (a + 1)
+tick s rt t = t
+
+type Traversal = forall t. Type t -> t -> t
 

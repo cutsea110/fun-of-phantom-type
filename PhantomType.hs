@@ -322,3 +322,8 @@ parseDynamic cs = parseDynamic' $ skipSpace cs
       parseRep' cs >>= \(Rep ra, cs') ->
       parse' ra cs' >>= \(a, cs'') ->
       return (Dyn ra a, cs'')
+
+type Name = String
+type Age = Int
+data Person = Person Name Age deriving Show
+

@@ -355,6 +355,7 @@ everywhere' f = imap (everywhere' f) <*> f
 
 type Query s = forall t. Type t -> t -> s
 
+{--
 isum :: Query Int -> Query Int
 isum f (RInt) i = 0
 isum f (RChar) c = 0
@@ -362,9 +363,12 @@ isum f (RList ra) [] = 0
 isum f (RList ra) (a:as) = f ra a + f (RList ra) as
 isum f (RPair ra rb) (a, b) = f ra a + f rb b
 isum f (RPerson ) (Person n a) = f rString n + f RInt a
+--}
 
+{--
 total :: Query Int -> Query Int
 total f rt t = f rt t + isum (total f) rt t
+--}
 
 age :: Query Age
 age (RPerson) (Person n a) = a
@@ -437,3 +441,20 @@ sizeof (RPerson) _ = 3
 --                                            = Person (f rString (g rString n)) (f RInt (g RInt a))
 --                                            = Person (f rString $ g rString n) (f RInt $ g RInt a)
 -- ∴ imap (f <*> g) = imap f <*> imap g
+
+icrush :: forall s. (s -> s -> s) -> s -> Query s -> Query s
+icrush plus seed f (RInt) i = seed
+icrush plus seed f (RChar) c= seed
+icrush plus seed f (RList ra) [] = seed
+icrush plus seed f (RList ra) (a:as) = f ra a `plus` f (RList ra) as
+icrush plus seed f (RPair ra rb) (a, b) = f ra a `plus` f rb b
+icrush plus seed f (RPerson) (Person n a) = f rString n `plus` f RInt a
+
+isum :: Query Int -> Query Int
+isum = icrush (+) 0
+
+everything :: forall s. (s -> s -> s) -> s -> Query s -> Query s
+everything plus seed f rt t = f rt t `plus` (icrush plus seed) (everything plus seed f) rt t
+
+total :: Query Int -> Query Int
+total = everything (+) 0

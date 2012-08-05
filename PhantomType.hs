@@ -383,3 +383,17 @@ sizeof (RPerson) _ = 3
 -- total age ps'
 -- total sizeof rString "Richard Bird"
 
+-- imap copy (RInt) i = i
+--      copy (RInt) i = id i = i
+-- imap copy (RChar) c = c
+--      copy (RChar) c = id c = c
+-- imap copy (RList ra) [] = []
+--      copy (RList ra) [] = id [] = []
+-- imap copy (RList ra) (a:as) = copy ra a:copy (RList ra) as = id a:id as = a:as
+--      copy (RList ra) (a:as) = id (a:as) = a:as
+-- imap copy (RPair ra rb) (a, b) = (copy ra a, copy rb b) = (id a, id b) = (a, b)
+--      copy (RPair ra rb) (a, b) = id (a, b) = (a, b)
+-- imap copy (RPerson) (Person n a) = Person (copy rString n) (copy RInt a) = Person (id n) (id a) = Person n a
+--      copy (RPerson) (Person n a) = id (Person n a) = Person n a
+-- ∴ imap copy = copy
+

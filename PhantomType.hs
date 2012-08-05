@@ -195,6 +195,7 @@ parse' (RPair ra rb) cs = parsePair ra rb $ skipSpace cs
       parse' rb cs'' >>= \(b, cs''') ->
       parseSep cs''' >>= \(')', cs'''') ->
       return ((a, b), cs'''')
+parse' (RDyn) cs = parseDynamic $ skipSpace cs
 
 skipSpace :: String -> String
 skipSpace ccs@(c:cs) | isSpace c = skipSpace cs
@@ -313,3 +314,11 @@ parseRep' cs = parseR $ skipSpace cs
     parseRP cs = parseRP' $ skipSpace cs
       where
         parseRP' (')':cs) = return (')', cs)
+
+parseDynamic :: String -> Maybe (Dynamic, String)
+parseDynamic cs = parseDynamic' $ skipSpace cs
+  where
+    parseDynamic' ('D':'y':'n':cs) =
+      parseRep' cs >>= \(Rep ra, cs') ->
+      parse' ra cs' >>= \(a, cs'') ->
+      return (Dyn ra a, cs'')

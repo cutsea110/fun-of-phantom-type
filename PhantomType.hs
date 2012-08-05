@@ -335,3 +335,51 @@ tick s rt t = t
 
 type Traversal = forall t. Type t -> t -> t
 
+copy :: Traversal
+copy rt = id
+
+(<*>) :: Traversal -> Traversal -> Traversal
+(f <*> g) rt = f rt . g rt
+
+imap :: Traversal -> Traversal
+imap f (RInt) i = i
+imap f (RChar) c = c
+imap f (RList ra) [] = []
+imap f (RList ra) (a:as) = f ra a:f (RList ra) as
+imap f (RPair ra rb) (a, b) = (f ra a, f rb b)
+imap f (RPerson) (Person n a) = Person (f rString n) (f RInt a)
+
+everywhere, everywhere' :: Traversal -> Traversal
+everywhere f = f <*> imap (everywhere f)
+everywhere' f = imap (everywhere' f) <*> f
+
+type Query s = forall t. Type t -> t -> s
+
+isum :: Query Int -> Query Int
+isum f (RInt) i = 0
+isum f (RChar) c = 0
+isum f (RList ra) [] = 0
+isum f (RList ra) (a:as) = f ra a + f (RList ra) as
+isum f (RPair ra rb) (a, b) = f ra a + f rb b
+isum f (RPerson ) (Person n a) = f rString n + f RInt a
+
+total :: Query Int -> Query Int
+total f rt t = f rt t + isum (total f) rt t
+
+age :: Query Age
+age (RPerson) (Person n a) = a
+age _ _ = 0
+
+sizeof :: Query Int
+sizeof (RInt) _ = 2
+sizeof (RChar) _ = 2
+sizeof (RList ra) [] = 0
+sizeof (RList ra) (_:_) = 3
+sizeof (RPair ra rb) _ = 3
+sizeof (RPerson) _ = 3
+
+-- ps = [Person "Norma" 50, Person "Richard" 59]
+-- ps' = everywhere (tick "Richard") (RList RPerson) ps
+-- total age ps'
+-- total sizeof rString "Richard Bird"
+

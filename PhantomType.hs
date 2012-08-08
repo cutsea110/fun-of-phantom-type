@@ -58,6 +58,7 @@ data Type t where
   RPair :: (Show a, Show b) => Type a -> Type b -> Type (a, b)
   RPerson :: Type Person
   RDyn :: Type Dynamic
+  RFunc :: Type a -> Type b -> Type (a -> b)
 
 data Dynamic = forall t. Show t => Dyn (Type t) t
 
@@ -240,6 +241,7 @@ tequal (RInt) (RInt) = return id
 tequal (RChar) (RChar) = return id
 tequal (RList ra1) (RList ra2) = liftM list (tequal ra1 ra2)
 tequal (RPair ra1 rb1) (RPair ra2 rb2) = liftM2 pair (tequal ra1 ra2) (tequal rb1 rb2)
+tequal (RFunc ra1 rb1) (RFunc ra2 rb2) = liftM2 func (tequal ra1 ra2) (tequal rb1 rb2)
 tequal _ _ = fail "cannot unify"
 
 list :: (a -> b) -> ([a] -> [b])
@@ -247,6 +249,9 @@ list = map
 pair :: (a -> c) -> (b -> d) -> ((a, b) -> (c, d))
 -- arr a c -> arr b d -> arr (a, b) (c, d)
 pair = (***)
+func :: (a -> c) -> (b -> d) -> ((a -> b) -> (c -> d))
+-- arr a c -> arr b d -> arr a b -> arr c d
+func = undefined
 
 cast :: forall t. Dynamic -> Type t -> Maybe t
 cast (Dyn ra a) rt = fmap (\f -> f a) (tequal ra rt)

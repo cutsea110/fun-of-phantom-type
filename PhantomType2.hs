@@ -52,10 +52,13 @@ data Dir t p where
   (:^:) :: Dir p1 p2 -> Dir t p1 -> Dir t p2
 
 format' :: forall t p. Dir t p -> (String -> t) -> (String -> p)
-format' (Lit s) = \cont out -> cont (out ++ s)
-format' (Int) = \cont out -> \i -> cont (out ++ show i)
-format' (String) = \cont out -> \s -> cont (out ++ s)
-format' (d1 :^: d2) = \cont out -> format' d1 (format' d2 cont) out
+format' (Lit s) = \cont -> cont.(++s)
+format' (Int) = flip' (\i cont -> cont . (++ show i))
+format' (String) = flip' (\s cont -> cont . (++ s))
+format' (d1 :^: d2) = \cont -> format' d1 (format' d2 cont)
+
+flip' :: (x -> c -> o -> a) -> c -> o -> x -> a
+flip' f c o x = f x c o
 
 format :: forall p. Dir String p -> p
 format d = format' d id ""

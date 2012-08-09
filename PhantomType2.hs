@@ -45,6 +45,7 @@ flatcat :: forall a. Btree a -> [a] -> [a]
 flatcat (Leaf a) as = a:as
 flatcat (Fork tl tr) as = flatcat tl (flatcat tr as)
 
+{-
 data Dir t p where
   Lit :: String -> Dir t t
   Int :: Dir t (Int -> t)
@@ -62,3 +63,21 @@ flip' f c o x = f x c o
 
 format :: forall p. Dir String p -> p
 format d = format' d id ""
+-}
+
+data Dir t where
+  End :: Dir String
+  Lit :: String -> Dir p -> Dir p
+  Int :: Dir t -> Dir (Int -> t)
+  String :: Dir t -> Dir (String -> t)
+
+format' :: forall t. Dir t -> String -> t
+format' (End) = \out -> out
+format' (Lit s d) = \out -> format' d (out ++ s)
+format' (Int d) = \out -> \i -> format' d (out ++ show i)
+format' (String d) = \out -> \s -> format' d (out ++ s)
+
+format :: forall t. Dir t -> t
+format d = format' d ""
+
+-- format (String (Lit " is " (Int End))) "Richard" 60

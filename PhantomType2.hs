@@ -72,10 +72,10 @@ data Dir t where
   String :: Dir t -> Dir (String -> t)
 
 format' :: forall t. Dir t -> String -> t
-format' (End) = \out -> out
-format' (Lit s d) = \out -> format' d (out ++ s)
-format' (Int d) = \out -> \i -> format' d (out ++ show i)
-format' (String d) = \out -> \s -> format' d (out ++ s)
+format' (End) = id
+format' (Lit s d) = format' d . (++ s)
+format' (Int d) = flip (\i -> format' d . (++ show i))
+format' (String d) = flip (\s -> format' d . (++ s))
 
 format :: forall t. Dir t -> t
 format d = format' d ""
